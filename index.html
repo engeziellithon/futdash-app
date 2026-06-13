@@ -489,13 +489,37 @@
 <div class="overlay" id="modal">
   <div class="modal">
     <div class="modal-ttl">⚙️ Configurações</div>
-    <div class="modal-sub">Configure a chave de API do Grok para usar o reescritor com IA. Limites altos e gratuitos.</div>
+    <div class="modal-sub">Configure o modo de IA: nuvem (Grok) ou servidor local (LM Studio).</div>
 
-    <div class="modal-lbl">Chave de API Grok (xAI)</div>
-    <input class="modal-in" type="password" id="apiInput" placeholder="xai-...">
-    <div class="modal-note">
-      🔒 Salva localmente no seu dispositivo, nunca enviada a terceiros.<br>
-      Obtenha grátis em: <a href="https://console.x.ai/" target="_blank">console.x.ai</a>
+    <!-- SEÇÃO: MODO NUVEM -->
+    <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rsm);padding:12px;margin-bottom:13px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">☁️ MODO NUVEM — Grok (xAI)</div>
+      <div class="modal-lbl">Chave de API Grok</div>
+      <input class="modal-in" type="password" id="apiInput" placeholder="xai-..." style="margin-bottom:6px">
+      <div class="modal-note" style="margin-bottom:0">
+        Obtenha grátis em: <a href="https://console.x.ai/" target="_blank">console.x.ai</a> · Funciona de qualquer lugar.
+      </div>
+    </div>
+
+    <!-- SEÇÃO: MODO LOCAL -->
+    <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rsm);padding:12px;margin-bottom:13px">
+      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px">🖥️ MODO LOCAL — LM Studio / Ollama</div>
+      <div class="modal-lbl">URL do servidor local</div>
+      <input class="modal-in" id="srvInput" placeholder="http://localhost:1234" oninput="toggleSrvFields()" style="margin-bottom:6px">
+      <div class="modal-note">
+        LM Studio: <code style="color:var(--green)">http://localhost:1234</code><br>
+        Celular na mesma rede: <code style="color:var(--green)">http://IP_DO_PC:1234</code><br>
+        Deixe vazio para usar o Grok (nuvem).
+      </div>
+      <div id="mdlRow" style="display:none;margin-top:10px">
+        <div class="modal-lbl">Nome do modelo (opcional)</div>
+        <input class="modal-in" id="mdlInput" placeholder="ex: llama-3-8b-instruct" style="margin-bottom:4px">
+        <div class="modal-note" style="margin-bottom:0">Veja o nome exato na aba Models do LM Studio.</div>
+      </div>
+      <div style="margin-top:10px;padding:9px;background:rgba(179,136,255,.08);border:1px solid rgba(179,136,255,.2);border-radius:var(--rsm);font-size:11px;color:var(--purple);line-height:1.65">
+        ⚡ <b>LM Studio:</b> ative o servidor em <b>Local Server → Start Server</b>.<br>
+        Para acesso pelo celular: Server Settings → <b>Bind to all interfaces</b> (0.0.0.0).
+      </div>
     </div>
 
     <div class="modal-hr"></div>

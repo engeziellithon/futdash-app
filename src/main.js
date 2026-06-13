@@ -6,7 +6,7 @@ let curPost = null
 let curFmt  = 'viral'
 let posts   = []
 let arTimer = null
-let settings = { apiKey: '', autoRefresh: 0 }
+let settings = { apiKey: '', autoRefresh: 0, serverUrl: '', localModel: '' }
 
 // ── INIT ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,12 +33,17 @@ function loadSettings() {
   try {
     settings.apiKey      = localStorage.getItem('fd_key') || ''
     settings.autoRefresh = parseInt(localStorage.getItem('fd_ar') || '0')
+    settings.serverUrl   = localStorage.getItem('fd_srv') || ''
+    settings.localModel  = localStorage.getItem('fd_mdl') || ''
   } catch (_) {}
 }
 
 window.openSettings = () => {
   document.getElementById('apiInput').value = settings.apiKey
   document.getElementById('arSel').value    = settings.autoRefresh
+  document.getElementById('srvInput').value = settings.serverUrl
+  document.getElementById('mdlInput').value = settings.localModel
+  toggleSrvFields()
   document.getElementById('modal').classList.add('open')
 }
 window.closeSettings = () => {
@@ -47,13 +52,25 @@ window.closeSettings = () => {
 window.saveSettings = () => {
   settings.apiKey      = document.getElementById('apiInput').value.trim()
   settings.autoRefresh = parseInt(document.getElementById('arSel').value)
+  settings.serverUrl   = document.getElementById('srvInput').value.trim().replace(/\/$/, '')
+  settings.localModel  = document.getElementById('mdlInput').value.trim()
   try {
     localStorage.setItem('fd_key', settings.apiKey)
     localStorage.setItem('fd_ar',  settings.autoRefresh)
+    localStorage.setItem('fd_srv', settings.serverUrl)
+    localStorage.setItem('fd_mdl', settings.localModel)
   } catch (_) {}
   setupAR()
   closeSettings()
-  toast('✅ Configurações salvas!', 'ok')
+  const mode = settings.serverUrl ? `🖥️ LM Studio (${settings.serverUrl})` : '☁️ Grok (Vercel)'
+  toast(`✅ Salvo — modo: ${mode}`, 'ok')
+}
+
+// Mostra/oculta campos de servidor local
+window.toggleSrvFields = () => {
+  const hasSrv = document.getElementById('srvInput').value.trim() !== ''
+  const row = document.getElementById('mdlRow')
+  if (row) row.style.display = hasSrv ? 'block' : 'none'
 }
 
 function setupAR() {
@@ -280,7 +297,7 @@ function renderAIContent() {
 
     <div class="ai-loader" id="aiLoader">
       <div class="spinner"></div>
-      <span class="loader-txt">Processando com Grok...</span>
+      <span class="loader-txt" id="loaderTxt">Processando...</span>
     </div>
 
     <div class="ai-res" id="aiRes">
@@ -316,46 +333,101 @@ window.selFmt = (el) => {
   if (r) r.classList.remove('on')
 }
 
+// ── PROMPTS (usados tanto no Vercel quanto no LM Studio local) ──
+function buildPrompt(format, content, handle) {
+  const P = {
+    viral: `Você é um criador de conteúdo viral de futebol no X em português brasileiro. Tom: analítico, provocativo.\n\nTransforme em TWEET VIRAL com NO MÁXIMO 280 caracteres. Comece com número impactante. Máx 2 emojis. Inclua "Via @${handle}". Responda APENAS com o tweet.\n\nPost:\n${content}`,
+    thread: `Você é um criador de threads virais de futebol no X em português brasileiro.\n\nThread de 8 tweets (1/ a 8/). 1/: gancho. 2/-6/: dados. 7/: revelação. 8/: pergunta + "RT se te surpreendeu". Cite "@${handle}" no tweet 2. Máx 280 chars cada. Responda APENAS com os tweets numerados.\n\nPost:\n${content}`,
+    comparacao: `Você é especialista em comparações de futebol no X em português brasileiro.\n\nComparação visual em texto (máx 280 chars):\n  NOME A vs NOME B\n  ─────────────────\n  Métrica: X | Y\nConclua com pergunta. "Via @${handle}". Responda APENAS com o post.\n\nPost:\n${content}`,
+    pergunta: `Você é especialista em engajamento de futebol no X em português brasileiro.\n\nEnquete viral (máx 280 chars): [dado impactante]\n\nQual sua opinião?\n[A] [B] [C]\n\nVia @${handle}\n\nResponda APENAS com o post.\n\nPost:\n${content}`,
+    polemico: `Você é criador de conteúdo polêmico baseado em dados no X em português brasileiro.\n\nPost polêmico (máx 500 chars):\nOpinião impopular (com dados) 📊\n• [dado 1]\n• [dado 2]\n• [dado 3]\n[Conclusão ousada]\nVia @${handle}\n\nResponda APENAS com o post.\n\nPost:\n${content}`,
+  }
+  return P[format] || P.viral
+}
+
 // ── REWRITE ──────────────────────────────────────────────
 window.doRewrite = async () => {
   if (!curPost) { toast('Nenhum post selecionado', ''); return }
-  if (!settings.apiKey) { openSettings(); toast('Configure sua chave Grok ⚙️', 'err'); return }
 
-  const loader = document.getElementById('aiLoader')
-  const result = document.getElementById('aiRes')
-  if (loader) loader.classList.add('on')
-  if (result) result.classList.remove('on')
+  const handle  = window._aiHandle || 'fonte'
+  const isLocal = !!settings.serverUrl
+
+  // Validações por modo
+  if (!isLocal && !settings.apiKey) {
+    openSettings()
+    toast('Configure sua chave Grok ⚙️', 'err')
+    return
+  }
+
+  const loader  = document.getElementById('aiLoader')
+  const result  = document.getElementById('aiRes')
+  const loaderT = document.getElementById('loaderTxt')
+  if (loader)  loader.classList.add('on')
+  if (result)  result.classList.remove('on')
+  if (loaderT) loaderT.textContent = isLocal ? '🖥️ Processando no LM Studio...' : '☁️ Processando com Grok...'
 
   try {
-    const r = await fetch('/api/rewrite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: settings.apiKey,
-        content: curPost.text,
-        format:  curFmt,
-        handle:  window._aiHandle || 'fonte',
-      }),
-    })
-    const d = await r.json()
-    if (loader) loader.classList.remove('on')
+    let text
 
-    if (d.ok) {
-      const rtxt = document.getElementById('resTxt')
-      const cc   = document.getElementById('charCt')
-      if (rtxt) rtxt.textContent = d.result
-      if (cc) {
-        cc.textContent = `${d.result.length} chars`
-        cc.className = `char-ct${d.result.length > 280 ? ' over' : ''}`
+    if (isLocal) {
+      // ── MODO LOCAL: chama LM Studio/Ollama/etc. direto do browser ──
+      const endpoint = `${settings.serverUrl}/v1/chat/completions`
+      const model    = settings.localModel || 'local-model'
+      const prompt   = buildPrompt(curFmt, curPost.text, handle)
+
+      const r = await fetch(endpoint, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          max_tokens:  1024,
+          temperature: 0.8,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+      if (!r.ok) {
+        const err = await r.text()
+        throw new Error(`LM Studio respondeu HTTP ${r.status}: ${err.slice(0, 200)}`)
       }
-      if (result) result.classList.add('on')
+      const d = await r.json()
+      text = d.choices?.[0]?.message?.content?.trim()
+      if (!text) throw new Error('Resposta vazia do LM Studio')
+
     } else {
-      toast(`❌ ${d.error || 'Erro na API'}`, 'err')
+      // ── MODO NUVEM: chama /api/rewrite na Vercel (Grok) ──
+      const r = await fetch('/api/rewrite', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: settings.apiKey,
+          content: curPost.text,
+          format:  curFmt,
+          handle,
+        }),
+      })
+      const d = await r.json()
+      if (!d.ok) throw new Error(d.error || 'Erro na API Grok')
+      text = d.result
     }
-  } catch (_) {
-    const l = document.getElementById('aiLoader')
-    if (l) l.classList.remove('on')
-    toast('❌ Erro de rede', 'err')
+
+    if (loader) loader.classList.remove('on')
+    const rtxt = document.getElementById('resTxt')
+    const cc   = document.getElementById('charCt')
+    if (rtxt) rtxt.textContent = text
+    if (cc) {
+      cc.textContent = `${text.length} chars`
+      cc.className   = `char-ct${text.length > 280 ? ' over' : ''}`
+    }
+    if (result) result.classList.add('on')
+
+  } catch (e) {
+    if (loader) loader.classList.remove('on')
+    const isLocalErr = isLocal && (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))
+    if (isLocalErr) {
+      toast('❌ LM Studio inacessível. Verifique se está rodando e se o CORS está ativado.', 'err')
+    } else {
+      toast(`❌ ${e.message}`, 'err')
+    }
   }
 }
 
