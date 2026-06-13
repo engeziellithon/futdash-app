@@ -125,6 +125,45 @@
     .acc-live { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px;
       opacity: 0; transition: opacity .15s; margin-left: auto; flex-shrink: 0; }
     .acc-row.active .acc-live { opacity: 1; }
+    .acc-del { font-size: 12px; color: var(--text3); padding: 2px 4px; border-radius: 3px;
+      cursor: pointer; opacity: 0; transition: opacity .15s; margin-left: auto; flex-shrink: 0;
+      background: transparent; border: none; }
+    .acc-row:hover .acc-del { opacity: 1; }
+    .acc-row.active .acc-del { opacity: 1; }
+
+    /* ─── ADD PROFILES PANEL ─── */
+    .sb-add {
+      border-top: 1px solid var(--border); padding: 10px 10px 12px; flex-shrink: 0;
+      background: var(--bg2);
+    }
+    .sb-add-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--text3); margin-bottom: 6px; }
+    .sb-add-row { display: flex; gap: 5px; }
+    .sb-add-in {
+      flex: 1; background: var(--bg); border: 1px solid var(--border2);
+      border-radius: var(--rsm); padding: 7px 10px; color: var(--text1);
+      font-size: 12px; font-family: inherit; outline: none; min-width: 0;
+      transition: border-color .18s;
+    }
+    .sb-add-in:focus { border-color: var(--green); }
+    .sb-add-in::placeholder { color: var(--text3); }
+    .mob-add-wrap {
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: var(--r); padding: 12px; margin-bottom: 10px;
+    }
+    .mob-add-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--text3); margin-bottom: 6px; }
+    .mob-add-ta {
+      width: 100%; background: var(--bg); border: 1px solid var(--border2);
+      border-radius: var(--rsm); padding: 9px 12px; color: var(--text1);
+      font-size: 13px; font-family: inherit; outline: none; resize: none;
+      transition: border-color .18s; height: 64px;
+    }
+    .mob-add-ta:focus { border-color: var(--green); }
+    .mob-add-ta::placeholder { color: var(--text3); }
+    .mob-add-foot { display: flex; justify-content: flex-end; margin-top: 6px; }
+    .mob-custom-ttl { font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--blue); padding: 8px 2px 4px; }
 
     /* ─── MAIN ─────────────────────────────────────────── */
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -414,6 +453,14 @@
         <div class="sb-sub">10 fontes de dados de futebol</div>
       </div>
       <div class="acc-list" id="accList"></div>
+      <!-- Adicionar perfis (sidebar) -->
+      <div class="sb-add">
+        <div class="sb-add-lbl">➕ Adicionar perfis do X</div>
+        <div class="sb-add-row">
+          <input class="sb-add-in" id="sbHandleIn" placeholder="@neymar, @cr7..." onkeydown="if(event.key==='Enter')addCustomHandles()">
+          <button class="btn btn-primary btn-sm" onclick="addCustomHandles()" title="Adicionar">+</button>
+        </div>
+      </div>
     </aside>
 
     <!-- FEED -->
@@ -472,6 +519,14 @@
 
 <!-- ── MOBILE: ACCOUNTS OVERLAY ── -->
 <div class="mob-acc" id="mobAcc">
+  <!-- Adicionar perfis customizados (mobile) -->
+  <div class="mob-add-wrap">
+    <div class="mob-add-lbl">➕ Adicionar perfis do X</div>
+    <textarea class="mob-add-ta" id="mobHandleIn" placeholder="@neymar, @cr7, @kvaratskhelia"></textarea>
+    <div class="mob-add-foot">
+      <button class="btn btn-primary btn-sm" onclick="addCustomHandles()">✚ Adicionar</button>
+    </div>
+  </div>
   <input class="mob-acc-search" placeholder="🔍 Buscar conta..." oninput="filterAccounts(this.value)">
   <div class="mob-grid" id="mobGrid"></div>
 </div>

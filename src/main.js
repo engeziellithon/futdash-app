@@ -7,10 +7,12 @@ let curFmt  = 'viral'
 let posts   = []
 let arTimer = null
 let settings = { apiKey: '', autoRefresh: 0, serverUrl: '', localModel: '' }
+let customHandles = []  // handles personalizados do usuário
 
 // ── INIT ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings()
+  loadCustomHandles()
   buildSidebar()
   buildMobGrid()
   registerSW()
@@ -77,6 +79,95 @@ function setupAR() {
   if (arTimer) clearInterval(arTimer)
   if (settings.autoRefresh > 0 && curAcc)
     arTimer = setInterval(() => loadAcc(curAcc, false), settings.autoRefresh * 1000)
+}
+
+// ── CUSTOM HANDLES ────────────────────────────────────────
+function loadCustomHandles() {
+  try {
+    const raw = localStorage.getItem('fd_custom')
+    customHandles = raw ? JSON.parse(raw) : []
+  } catch (_) { customHandles = [] }
+  renderCustom()
+}
+
+function saveCustomHandles() {
+  try { localStorage.setItem('fd_custom', JSON.stringify(customHandles)) } catch (_) {}
+}
+
+function parseHandles(raw) {
+  return raw
+    .split(/[,\n;]+/)
+    .map(h => h.trim().replace(/^@/, '').replace(/[^\w.]/g, ''))
+    .filter(h => h.length > 0 && h.length <= 50)
+}
+
+window.addCustomHandles = () => {
+  const sbEl  = document.getElementById('sbHandleIn')
+  const mobEl = document.getElementById('mobHandleIn')
+  const raw   = (sbEl?.value || '') + ',' + (mobEl?.value || '')
+  const news  = parseHandles(raw).filter(h => !customHandles.includes(h))
+  if (!news.length) { toast('Nenhum handle novo válido', ''); return }
+  customHandles = [...customHandles, ...news]
+  saveCustomHandles()
+  if (sbEl)  sbEl.value  = ''
+  if (mobEl) mobEl.value = ''
+  renderCustom()
+  toast(`✅ Adicionado: ${news.map(h => '@'+h).join(', ')}`, 'ok')
+  // Carrega automaticamente o primeiro novo
+  if (news.length === 1) loadAcc(news[0])
+}
+
+window.removeCustomHandle = (handle, e) => {
+  e.stopPropagation()
+  customHandles = customHandles.filter(h => h !== handle)
+  saveCustomHandles()
+  renderCustom()
+  if (curAcc === handle) {
+    curAcc = null
+    document.getElementById('feedBody').innerHTML =
+      `<div class="empty"><div class="empty-ico">🗑️</div><div class="empty-ttl">Perfil removido</div></div>`
+  }
+  toast(`🗑️ @${handle} removido`, '')
+}
+
+// Renderiza a seção de custom accounts na sidebar + mobile grid
+function renderCustom() {
+  // Sidebar
+  const existing = document.getElementById('custom-section-sb')
+  if (existing) existing.remove()
+  if (customHandles.length > 0) {
+    const div = document.createElement('div')
+    div.id = 'custom-section-sb'
+    div.innerHTML = `<div class="cat-lbl" style="color:var(--blue)">📌 Meus Perfis</div>` +
+      customHandles.map(h => `
+        <div class="acc-row" id="si-${h}" onclick="loadAcc('${h}')">
+          <div class="acc-ico" style="background:#4fc3f71a;font-size:13px">👤</div>
+          <div><div class="acc-nm">@${h}</div><div class="acc-ds">Perfil customizado</div></div>
+          <button class="acc-del" onclick="removeCustomHandle('${h}',event)" title="Remover">✕</button>
+        </div>`).join('')
+    document.getElementById('accList').appendChild(div)
+  }
+
+  // Mobile grid — custom cards section
+  const existMob = document.getElementById('custom-section-mob')
+  if (existMob) existMob.remove()
+  if (customHandles.length > 0) {
+    const grid = document.getElementById('mobGrid')
+    const wrap = document.createElement('div')
+    wrap.id = 'custom-section-mob'
+    wrap.style.cssText = 'grid-column:1/-1'
+    wrap.innerHTML = `<div class="mob-custom-ttl">📌 Meus Perfis</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:9px">` +
+      customHandles.map(h => `
+        <div class="mob-card${curAcc===h?' active':''}" id="mi-${h}"
+             onclick="loadAcc('${h}');switchTab('feed')" style="position:relative">
+          <button style="position:absolute;top:6px;right:6px;background:transparent;border:none;color:var(--text3);font-size:12px;cursor:pointer;padding:2px" onclick="removeCustomHandle('${h}',event)">✕</button>
+          <div class="mob-card-ico">👤</div>
+          <div class="mob-card-nm">@${h}</div>
+          <div class="mob-card-ds">X</div>
+        </div>`).join('') + '</div>'
+    grid.parentElement.insertBefore(wrap, grid)
+  }
 }
 
 // ── SIDEBAR ─────────────────────────────────────────────
