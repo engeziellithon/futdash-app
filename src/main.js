@@ -473,6 +473,8 @@ window.doRewrite = async () => {
           model,
           max_tokens:  1024,
           temperature: 0.8,
+          // Desativa modo thinking/reasoning se o modelo suportar
+          ...(model.includes('qwen') || model.includes('gpt-oss') ? { thinking: { type: 'disabled' } } : {}),
           messages: [{ role: 'user', content: prompt }],
         }),
       })
@@ -481,8 +483,10 @@ window.doRewrite = async () => {
         throw new Error(`LM Studio respondeu HTTP ${r.status}: ${err.slice(0, 200)}`)
       }
       const d = await r.json()
-      text = d.choices?.[0]?.message?.content?.trim()
-      if (!text) throw new Error('Resposta vazia do LM Studio')
+      const msg = d.choices?.[0]?.message || {}
+      // Alguns modelos (thinking/reasoning) retornam content vazio e texto em 'reasoning'
+      text = (msg.content || msg.reasoning || '').trim()
+      if (!text) throw new Error('Resposta vazia do modelo local')
 
     } else {
       // ── MODO NUVEM: chama /api/rewrite na Vercel (Grok) ──
