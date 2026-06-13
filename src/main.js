@@ -36,7 +36,7 @@ function loadSettings() {
     settings.apiKey      = localStorage.getItem('fd_key') || ''
     settings.autoRefresh = parseInt(localStorage.getItem('fd_ar') || '0')
     settings.serverUrl   = localStorage.getItem('fd_srv') || ''
-    settings.localModel  = localStorage.getItem('fd_mdl') || 'gemma-4-12b'
+    settings.localModel  = localStorage.getItem('fd_mdl') || 'google/gemma-4-12b-qat'
   } catch (_) {}
 }
 
@@ -463,7 +463,7 @@ window.doRewrite = async () => {
     if (isLocal) {
       // ── MODO LOCAL: chama LM Studio/Ollama/etc. direto do browser ──
       const endpoint = `${settings.serverUrl}/v1/chat/completions`
-      const model    = settings.localModel || 'gemma-4-12b'
+      const model    = settings.localModel || 'google/gemma-4-12b-qat'
       const prompt   = buildPrompt(curFmt, curPost.text, handle)
 
       const r = await fetch(endpoint, {
@@ -471,10 +471,13 @@ window.doRewrite = async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model,
-          max_tokens:  1024,
-          temperature: 0.8,
-          // Desativa modo thinking/reasoning se o modelo suportar
-          ...(model.includes('qwen') || model.includes('gpt-oss') ? { thinking: { type: 'disabled' } } : {}),
+          // Aumentado para 2048: modelos thinking consomem tokens internamente
+          // antes de gerar a resposta — com 1024 a resposta saía vazia
+          max_tokens:  2048,
+          temperature: 0.7,
+          // Tenta desativar thinking/reasoning nos modelos que suportam
+          ...(model.includes('qwen') || model.includes('gpt-oss') || model.includes('gemma')
+            ? { thinking: { type: 'disabled' } } : {}),
           messages: [{ role: 'user', content: prompt }],
         }),
       })
