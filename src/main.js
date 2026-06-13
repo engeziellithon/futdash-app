@@ -280,7 +280,7 @@ function renderAIContent() {
 
     <div class="ai-loader" id="aiLoader">
       <div class="spinner"></div>
-      <span class="loader-txt">Processando com Claude...</span>
+      <span class="loader-txt">Processando com Grok...</span>
     </div>
 
     <div class="ai-res" id="aiRes">
@@ -319,7 +319,7 @@ window.selFmt = (el) => {
 // ── REWRITE ──────────────────────────────────────────────
 window.doRewrite = async () => {
   if (!curPost) { toast('Nenhum post selecionado', ''); return }
-  if (!settings.apiKey) { openSettings(); toast('Configure sua chave Claude ⚙️', 'err'); return }
+  if (!settings.apiKey) { openSettings(); toast('Configure sua chave Grok ⚙️', 'err'); return }
 
   const loader = document.getElementById('aiLoader')
   const result = document.getElementById('aiRes')
