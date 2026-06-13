@@ -36,7 +36,7 @@ function loadSettings() {
     settings.apiKey      = localStorage.getItem('fd_key') || ''
     settings.autoRefresh = parseInt(localStorage.getItem('fd_ar') || '0')
     settings.serverUrl   = localStorage.getItem('fd_srv') || ''
-    settings.localModel  = localStorage.getItem('fd_mdl') || ''
+    settings.localModel  = localStorage.getItem('fd_mdl') || 'gemma-4-12b'
   } catch (_) {}
 }
 
@@ -463,7 +463,7 @@ window.doRewrite = async () => {
     if (isLocal) {
       // ── MODO LOCAL: chama LM Studio/Ollama/etc. direto do browser ──
       const endpoint = `${settings.serverUrl}/v1/chat/completions`
-      const model    = settings.localModel || 'local-model'
+      const model    = settings.localModel || 'gemma-4-12b'
       const prompt   = buildPrompt(curFmt, curPost.text, handle)
 
       const r = await fetch(endpoint, {
